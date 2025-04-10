@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+</head>
+<body>
+  <button onclick="handleCamera()">拍照上传</button>
+  <button onclick="handleAlbum()">相册上传</button>
+
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+  <input type="file" id="albumInput" accept="image/*" hidden>
+
+  <script>
+    function handleCamera() { document.getElementById('cameraInput').click(); }
+    function handleAlbum() { document.getElementById('albumInput').click(); }
+
+    document.getElementById('cameraInput').addEventListener('change', handleFile);
+    document.getElementById('albumInput').addEventListener('change', handleFile);
+
+    function handleFile(event) {
+      const file = event.target.files;
+      if (file) processImage(file);
+    }
+
+    function processImage(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          EXIF.getData(img, () => {
+            const orientation = EXIF.getTag(img, 'Orientation') || 1;
+            const canvas = correctOrientation(img, orientation);
+            canvas.toBlob((blob) => {
+              const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+              uploadImage(compressedFile);
+            }, 'image/jpeg', 0.7);
+          });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function correctOrientation(img, orientation) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      let width = img.width, height = img.height;
+
+      if (orientation >= 5 && orientation <= 8) {
+        [width, height] = [height, width];
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      switch(orientation) {
+        case 2: ctx.transform(-1, 0, 0, 1, width, 0); break;
+        case 3: ctx.transform(-1, 0, 0, -1, width, height); break;
+        case 4: ctx.transform(1, 0, 0, -1, 0, height); break;
+        case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+        case 6: ctx.transform(0, 1, -1, 0, height, 0); break;
+        case 7: ctx.transform(0, -1, -1, 0, height, width); break;
+        case 8: ctx.transform(0, -1, 1, 0, 0, width); break;
+        default: ctx.resetTransform();
+      }
+
+      ctx.drawImage(img, 0, 0);
+      return canvas;
+    }
+
+    function uploadImage(file) {
+      const formData = new FormData();
+      formData.append('image', file);
+      fetch('https://your-api.com/upload', { method: 'POST', body: formData })
+        .then(response => console.log('上传成功'))
+        .catch(error => console.error('上传失败', error));
+    }
+  </script>
+</body>
+</html>
