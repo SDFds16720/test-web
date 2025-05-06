@@ -1,0 +1,47 @@
+<!-- 文件输入元素 -->
+<head>
+    <title>上传图片</title>
+ <p id="targetP">请上传合规图片。</p>
+<script>
+function changeContent() {
+    document.getElementById("targetP").innerHTML = "上传成功。";
+}
+</script>
+<input type="file" id="fileInput" accept="image/*" />
+<script>
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0]; // 获取文件
+        const reader = new FileReader(); // 创建FileReader对象
+
+        reader.onload = function(e) {
+            const imgPreview = document.createElement('img'); // 创建图片元素
+            imgPreview.src = e.target.result; // 设置图片源为读取的结果
+            document.body.appendChild(imgPreview); // 将图片添加到DOM
+        };
+
+        reader.readAsDataURL(file); // 读取文件为Data URL
+    });
+</script>
+<script>
+    function uploadFile(file) {
+        const formData = new FormData(); // 创建FormData对象
+        formData.append('file', file); // 将文件添加到FormData中
+
+        const xhr = new XMLHttpRequest(); // 创建XMLHttpRequest对象
+        xhr.open('POST', 'http://web1.easyfuncloud.com/api/v1.upload/save', true); // 配置请求
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                console.log('上传成功'); // 上传成功提示
+          changeContent();
+} else {
+                console.error('上传失败'); // 上传失败提示
+            }
+        };
+        xhr.send(formData); // 发送请求
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function(event) {
+        const file = event.target.files[0]; // 获取文件
+        uploadFile(file); // 调用上传函数
+    });
+</script>
